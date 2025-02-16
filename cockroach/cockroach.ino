@@ -52,11 +52,27 @@ void setup() {
 }
 
 void loop() {
-  drive_motor(1, FORWARD, 150);
-  drive_motor(2, FORWARD, 150);
-  drive_motor(3, FORWARD, 150);
-  drive_motor(4, FORWARD, 150);
+
+
+  for(int i = 1; i <=4; i++) {
+    drive_motor(i, FORWARD, 200);
+  }
   delay(2000); // Run for 2 seconds
+
+  for(int i = 1; i <=4; i++) {
+    drive_motor(i, RELEASE, 200);
+  }
+  delay(1000);
+
+  for(int i = 1; i <=4; i++) {
+    drive_motor(i, REVERSE, 200);
+  }
+  delay(2000);
+
+  for(int i = 1; i <=4; i++) {
+    drive_motor(i, RELEASE, 200);
+  }
+  delay(1000);
 
 }
 
@@ -90,7 +106,21 @@ void drive_motor(int motor_num, int command, int speed) {
       shiftWrite(motorA, HIGH);
       shiftWrite(motorB, LOW);
       analogWrite(motorPWM, speed);
+      break;
+
+    case REVERSE:
+      shiftWrite(motorA, LOW);
+      shiftWrite(motorB, HIGH);
+      analogWrite(motorPWM, speed);
+      break;
+
+    case RELEASE:
+      shiftWrite(motorA, LOW);
+      shiftWrite(motorB, LOW);
+      analogWrite(motorPWM, 0);
+      break;
   }
+
 
 }
 
