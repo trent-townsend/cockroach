@@ -36,6 +36,7 @@
 
 void setup() {
   Serial.begin(9600);
+  Serial.println("Starting cockroach");
 
   // Initialize the shift register
   pinMode(MOTORLATCH, OUTPUT);
@@ -51,32 +52,47 @@ void setup() {
 }
 
 void loop() {
-  // Move Motor M1 forward at full speed
-  shiftWrite(MOTOR3_A, HIGH); 
-  shiftWrite(MOTOR3_B, LOW);  
-  analogWrite(MOTOR1_PWM, 255); 
+  drive_motor(1, FORWARD, 150);
+  drive_motor(2, FORWARD, 150);
+  drive_motor(3, FORWARD, 150);
+  drive_motor(4, FORWARD, 150);
   delay(2000); // Run for 2 seconds
-
-  // Move Motor M4 forward at full speed
-  shiftWrite(MOTOR4_A, HIGH); 
-  shiftWrite(MOTOR4_B, LOW);  
-  analogWrite(MOTOR2_PWM, 255); 
-  delay(2000); 
-
-  // Stop Motor M3
-  shiftWrite(MOTOR3_A, LOW); 
-  shiftWrite(MOTOR3_B, LOW); 
-  analogWrite(MOTOR3_PWM, 0);
-  delay(1000); 
-
-  // Stop Motor M4
-  shiftWrite(MOTOR4_A, LOW); 
-  shiftWrite(MOTOR4_B, LOW); 
-  analogWrite(MOTOR4_PWM, 0);
-  delay(1000);
 
 }
 
+void drive_motor(int motor_num, int command, int speed) {
+  int motorA, motorB, motorPWM;
+  switch (motor_num) {
+    case 1:
+      motorA = MOTOR1_A;
+      motorB = MOTOR1_B;
+      motorPWM = MOTOR1_PWM;
+      break;
+    case 2:
+      motorA = MOTOR2_A;
+      motorB = MOTOR2_B;
+      motorPWM = MOTOR2_PWM;
+      break;
+    case 3:
+      motorA = MOTOR3_A;
+      motorB = MOTOR3_B;
+      motorPWM = MOTOR3_PWM;
+      break;
+    case 4:
+      motorA = MOTOR4_A;
+      motorB = MOTOR4_B;
+      motorPWM = MOTOR4_PWM;
+      break;
+  }
+
+  switch (command) {
+    case FORWARD: 
+      shiftWrite(motorA, HIGH);
+      shiftWrite(motorB, LOW);
+      analogWrite(motorPWM, speed);
+  }
+
+}
 
 void shiftWrite(int output, int high_low) {
   static int latch_copy;
