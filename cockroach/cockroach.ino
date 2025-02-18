@@ -34,8 +34,9 @@
 #define LEFT_REVERSE 7
 #define RIGHT_REVERSE 8
 
+
 // Define forward US sensor stepper motor pins and step sequence
-const int forwardSensorStepperPins[4] = {8, 9, 10, 11};
+const int forwardSensorStepperPins[4] = {26, 28, 30, 32};
 
 // Full-step sequence
 const int stepCount = 4;
@@ -50,34 +51,55 @@ const int stepDelay = 2;   // 2ms delay between steps
 const int steps45deg = 512; // 4096 steps for full rotation when accounting for reduction ratio
 
 void setup() {
+
   Serial.begin(9600);
-  Serial.println("Starting cockroach");
+  Serial.println("Commencing setup...");
 
   // Initialize the shift register
+  Serial.println("Initializing the shift register");
   pinMode(MOTORLATCH, OUTPUT);
   pinMode(MOTORENABLE, OUTPUT);
   pinMode(MOTORDATA, OUTPUT);
   pinMode(MOTORCLK, OUTPUT);
 
   // Set default values for the shift register
+  Serial.println("Setting default values for the shift register");
   digitalWrite(MOTORDATA, LOW);
   digitalWrite(MOTORLATCH, LOW);
   digitalWrite(MOTORCLK, LOW);
   digitalWrite(MOTORENABLE, LOW);
 
+  // Reset all drive motors to LOW 
+  Serial.println("Resetting all drive motors to LOW...");
+  for (int i = 1; i <= 4; i++) { 
+    drive_motor(i, RELEASE, 0); // Set each motor to "release" with 0 speed
+  }
+  Serial.println("All motors set to LOW.");
+
   // Initiate pins for stepper motor for front sensor as output and low 
+  Serial.println("Initializing front sensor stepper motor");
   for (int i = 0; i < 4; i++) {
     pinMode(forwardSensorStepperPins[i], OUTPUT);
     digitalWrite(forwardSensorStepperPins[i], LOW);
   }
+
+  Serial.println("Setup Complete.");
 }
 
 void loop() {
-  drive_motor(1, FORWARD, 150);
-  drive_motor(2, FORWARD, 150);
-  drive_motor(3, FORWARD, 150);
-  drive_motor(4, FORWARD, 150);
-  delay(2000); // Run for 2 seconds
+  // drive_motor(1, FORWARD, 150);
+  // drive_motor(2, FORWARD, 150);
+  // drive_motor(3, FORWARD, 150);
+  // drive_motor(4, FORWARD, 150);
+  // delay(2000); // Run for 2 seconds
+
+
+  // Serial.println("Rotating front sensor 45 degrees clockwise");
+  // rotateFrontSensorMotor(steps45deg, 1);
+  // delay(1000);
+  // Serial.println("Rotatint front sensor 45 degrees anticlockwise");
+  // rotateFrontSensorMotor(steps45deg, -1);
+  // delay(1000);
 
 }
 
@@ -111,6 +133,22 @@ void drive_motor(int motor_num, int command, int speed) {
       shiftWrite(motorA, HIGH);
       shiftWrite(motorB, LOW);
       analogWrite(motorPWM, speed);
+      break;
+    case REVERSE:
+      shiftWrite(motorA, LOW);
+      shiftWrite(motorB, HIGH);
+      analogWrite(motorPWM, speed);
+      break;
+    case RELEASE:
+      shiftWrite(motorA, LOW);
+      shiftWrite(motorB, LOW);
+      analogWrite(motorPWM, 0);
+      break;
+    case BRAKE:
+      shiftWrite(motorA, HIGH);
+      shiftWrite(motorB, HIGH);
+      analogWrite(motorPWM, 255);
+      break;
   }
 
 }
