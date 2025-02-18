@@ -34,6 +34,21 @@
 #define LEFT_REVERSE 7
 #define RIGHT_REVERSE 8
 
+// Define forward US sensor stepper motor pins and step sequence
+const int forwardSensorStepperPins[4] = {8, 9, 10, 11};
+
+// Full-step sequence
+const int stepCount = 4;
+int stepSequence[stepCount][4] = {
+  {1, 1, 0, 0},
+  {0, 1, 1, 0},
+  {0, 0, 1, 1},
+  {1, 0, 0, 1}
+};
+int currentStep = 0;
+const int stepDelay = 2;   // 2ms delay between steps
+const int steps45deg = 512; // 4096 steps for full rotation when accounting for reduction ratio
+
 void setup() {
   Serial.begin(9600);
   Serial.println("Starting cockroach");
@@ -49,30 +64,20 @@ void setup() {
   digitalWrite(MOTORLATCH, LOW);
   digitalWrite(MOTORCLK, LOW);
   digitalWrite(MOTORENABLE, LOW);
+
+  // Initiate pins for stepper motor for front sensor as output and low 
+  for (int i = 0; i < 4; i++) {
+    pinMode(forwardSensorStepperPins[i], OUTPUT);
+    digitalWrite(forwardSensorStepperPins[i], LOW);
+  }
 }
 
 void loop() {
-
-
-  for(int i = 1; i <=4; i++) {
-    drive_motor(i, FORWARD, 200);
-  }
+  drive_motor(1, FORWARD, 150);
+  drive_motor(2, FORWARD, 150);
+  drive_motor(3, FORWARD, 150);
+  drive_motor(4, FORWARD, 150);
   delay(2000); // Run for 2 seconds
-
-  for(int i = 1; i <=4; i++) {
-    drive_motor(i, RELEASE, 200);
-  }
-  delay(1000);
-
-  for(int i = 1; i <=4; i++) {
-    drive_motor(i, REVERSE, 200);
-  }
-  delay(2000);
-
-  for(int i = 1; i <=4; i++) {
-    drive_motor(i, RELEASE, 200);
-  }
-  delay(1000);
 
 }
 
@@ -106,21 +111,7 @@ void drive_motor(int motor_num, int command, int speed) {
       shiftWrite(motorA, HIGH);
       shiftWrite(motorB, LOW);
       analogWrite(motorPWM, speed);
-      break;
-
-    case REVERSE:
-      shiftWrite(motorA, LOW);
-      shiftWrite(motorB, HIGH);
-      analogWrite(motorPWM, speed);
-      break;
-
-    case RELEASE:
-      shiftWrite(motorA, LOW);
-      shiftWrite(motorB, LOW);
-      analogWrite(motorPWM, 0);
-      break;
   }
-
 
 }
 
@@ -144,4 +135,16 @@ void shiftWrite(int output, int high_low) {
   digitalWrite(MOTORLATCH, HIGH);
   delayMicroseconds(5); // Small delay for safety
   digitalWrite(MOTORLATCH, LOW);
+}
+
+// Function to rotate the stepper motor for the front US sensor in a given direction
+void rotateFrontSensorMotor(int steps, int direction) {
+  for (int i = 0; i < steps; i++) {
+    currentStep = (currentStep + direction + stepCount) % stepCount;
+    
+    for (int pin = 0; pin < 4; pin++) {
+      digitalWrite(forwardSensorStepperPins[pin], stepSequence[currentStep][pin]);
+    }
+    delay(stepDelay);
+  }
 }
