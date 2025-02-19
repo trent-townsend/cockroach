@@ -98,35 +98,69 @@ void setup() {
 }
 
 void loop() {
-
-  // Serial.println("Setting drive motors to FORWARD");
-  // for(int i = 1; i <=4; i++) {
-  //   drive_motor(i, FORWARD, 255);
-  // }
-  // delay(2000); // Run for 2 seconds
-
-  // Serial.println("STOPPING drive motors");
-  // for(int i = 1; i <=4; i++) {
-  //   drive_motor(i, RELEASE, 255);
-  // }
-  // delay(2000); // Run for 2 seconds
-
-  // Serial.println("Setting drive motors to REVERSE");
-  // for(int i = 1; i <=4; i++) {
-  //   drive_motor(i, REVERSE, 255);
-  // }
-
-  getFrontDistance(15000);
-  delay(1000);
+  
+  //TO DO
+    // - record time for which driving forward 
+    // - use time forward to calculate reverse time if obstical encountered 
+    // - for closer distances move at slower speed (n.b. may require kick to overcome friction and intertia)
 
 
-  // Serial.println("Rotating front sensor 45 degrees clockwise");
-  // rotateFrontSensorMotor(steps45deg, 1);
-  // delay(1000);
-  // Serial.println("Rotating front sensor 45 degrees anticlockwise");
-  // rotateFrontSensorMotor(steps45deg, -1);
-  // delay(1000);
+  // Drive sequence
+  int distance = getFrontDistance(15000);
 
+  // Drive forward at full speed while more than 15cm or pulse times out
+  while (distance > 15 || distance == -1) {
+    Serial.println("All drive motors FORWARD at full speed");
+    for(int i = 1; i <=4; i++) {
+      drive_motor(i, FORWARD, 255);
+    }
+    delay(500);
+    distance = getFrontDistance(15000);
+  }
+
+  //stop if obstical detected; double check distance and if true reverse and change direction;
+  if (distance < 5 || distance == -2) {
+    distance = getFrontDistance(15000); 
+    if (distance < 5 || distance == -2) {
+      Serial.println("Obstical detected. STOPPING all drive motors");
+    }
+    for(int i = 1; i <= 4; i++) {
+      drive_motor(i, RELEASE, 0);
+    }
+    Serial.println("Moving away from obstical. REVERSING all drive motors");
+    for(int i = 1; i <=4; i++) {
+      drive_motor(i, REVERSE, 255);
+    }
+    delay(1500);
+
+    Serial.println("Moved away from obstical. STOPPING all drive motors");
+    for(int i = 1; i <= 4; i++) {
+      drive_motor(i, RELEASE, 0);
+    }
+
+    Serial.println("Determining direction to turn");
+    Serial.println("Rotating front sensor 45 degrees clockwise");
+    rotateFrontSensorMotor(steps45deg, 1);
+    int distance_right = getFrontDistance(15000);
+    Serial.print("Distance to right: ");
+    Serial.println(distance_right);
+    Serial.println("Rotating front sensor 90 degrees anticlockwise");
+    rotateFrontSensorMotor(steps45deg * 2, -1);
+    int distance_left = getFrontDistance(15000);
+    Serial.print("Distance to left: ");
+    Serial.println(distance_left);
+    Serial.println("Returning front sensor to neutral position");
+    rotateFrontSensorMotor(steps45deg, 1);
+
+    if (distance_left > distance_right) {
+      Serial.println("Turning left");
+    } else if (distance_right > distance_left) {
+      Serial.println("Turning right");
+    } else if (distance_right == distance_left && distance_right > 0) {
+      // pick random direction to turn
+    }
+
+  }
 }
 
 // Functions to set drive motors to specific directions and speed
