@@ -99,33 +99,33 @@ void setup() {
 
 void loop() {
 
-  Serial.println("Setting drive motors to FORWARD");
-  for(int i = 1; i <=4; i++) {
-    drive_motor(i, FORWARD, 255);
-  }
-  delay(2000); // Run for 2 seconds
+  // Serial.println("Setting drive motors to FORWARD");
+  // for(int i = 1; i <=4; i++) {
+  //   drive_motor(i, FORWARD, 255);
+  // }
+  // delay(2000); // Run for 2 seconds
 
-  Serial.println("STOPPING drive motors");
-  for(int i = 1; i <=4; i++) {
-    drive_motor(i, RELEASE, 255);
-  }
-  delay(2000); // Run for 2 seconds
+  // Serial.println("STOPPING drive motors");
+  // for(int i = 1; i <=4; i++) {
+  //   drive_motor(i, RELEASE, 255);
+  // }
+  // delay(2000); // Run for 2 seconds
 
-  Serial.println("Setting drive motors to REVERSE");
-  for(int i = 1; i <=4; i++) {
-    drive_motor(i, REVERSE, 255);
-  }
+  // Serial.println("Setting drive motors to REVERSE");
+  // for(int i = 1; i <=4; i++) {
+  //   drive_motor(i, REVERSE, 255);
+  // }
 
-  getFrontDistance(11600);
+  getFrontDistance(15000);
   delay(1000);
 
 
-  Serial.println("Rotating front sensor 45 degrees clockwise");
-  rotateFrontSensorMotor(steps45deg, 1);
-  delay(1000);
-  Serial.println("Rotating front sensor 45 degrees anticlockwise");
-  rotateFrontSensorMotor(steps45deg, -1);
-  delay(1000);
+  // Serial.println("Rotating front sensor 45 degrees clockwise");
+  // rotateFrontSensorMotor(steps45deg, 1);
+  // delay(1000);
+  // Serial.println("Rotating front sensor 45 degrees anticlockwise");
+  // rotateFrontSensorMotor(steps45deg, -1);
+  // delay(1000);
 
 }
 
@@ -175,8 +175,11 @@ void drive_motor(int motor_num, int command, int speed) {
       shiftWrite(motorB, HIGH);
       analogWrite(motorPWM, 255);
       break;
+    default:
+      Serial.print("Invalid motor command: ");
+      Serial.println(command);
+      break;
   }
-
 }
 
 void shiftWrite(int output, int high_low) {
@@ -214,28 +217,58 @@ void rotateFrontSensorMotor(int steps, int direction) {
 }
 
 // Function to determine distance in cm from front to obstical 
-int getFrontDistance(long utimeout) { // utime out is the maximum time to wait for return in us
-  long b;
-  // if echo line is still low from last result, return 0
-  if(digitalRead(ECHO) == HIGH) {
-    return 0;
+int getFrontDistance(long utimeout) {
+  long startTime, pulseDuration;
+
+  // Ensure sensor is ready for new reading
+  if (digitalRead(ECHO) == HIGH) {
+    Serial.println("Echo pin stuck HIGH, returning 0.");
+    return -3;
   }
-  digitalWrite(TRIG, HIGH); // send pulse 
-  delay(1);
+
+  // Send the trigger pulse
+  digitalWrite(TRIG, HIGH);
+  delayMicroseconds(10);
   digitalWrite(TRIG, LOW);
-  long utimer = micros(); // commence timer
-  // wait for pin state to change or timeout 
-  while((digitalRead(ECHO)==LOW)&&((micros()-utimer)<1000)) {}
-  utimer=micros();
-  // wait for pin state to change
-  while((digitalRead(ECHO)==HIGH)&&((micros()-utimer)<utimeout)){}
-  b = micros() - utimer;
-  if(b== 0) {
-    b = utimeout;
-    Serial.println("Front US timeout");
-  };
-  int distance = b / 58;
-  Serial.print("Distance at front: ");
-  Serial.println(distance);
-  return distance; 
+
+  // Wait for ECHO to go HIGH (start of pulse)
+  startTime = micros();
+  while (digitalRead(ECHO) == LOW) {
+    if ((micros() - startTime) > 2000) {  // 2ms timeout to detect pulse start
+      Serial.println("Echo start timeout.");
+      return -3;
+    }
+  }
+
+  // Capture start time
+  startTime = micros();
+
+  // Wait for ECHO to go LOW (end of pulse)
+  while (digitalRead(ECHO) == HIGH) {
+    if ((micros() - startTime) > utimeout) {  // Sensor timeout
+      Serial.println("Echo pulse timeout.");
+      return -1;
+    }
+  }
+
+  // Calculate pulse duration
+  pulseDuration = micros() - startTime;
+
+  // Reject very short pulses (noise)
+  if (pulseDuration < 200) {
+    Serial.println("Invalid pulse detected.");
+    return -2;
+  }
+
+  // Convert pulse time to distance (cm)
+  int distance = pulseDuration / 58;
+
+  // Debug output
+  Serial.print("Front distance: ");
+  Serial.print(distance);
+  Serial.println(" cm");
+
+  return distance;
 }
+
+
