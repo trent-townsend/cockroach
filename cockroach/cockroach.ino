@@ -50,6 +50,11 @@ int currentStep = 0;
 const int stepDelay = 2;   // 2ms delay between steps
 const int steps45deg = 512; // 4096 steps for full rotation when accounting for reduction ratio
 
+// Initiate echo sensor pins 
+#define TRIG 23
+#define ECHO 25
+#define USMAX 3000
+
 void setup() {
 
   Serial.begin(9600);
@@ -83,26 +88,48 @@ void setup() {
     digitalWrite(forwardSensorStepperPins[i], LOW);
   }
 
+  // Initiate front US sensor
+  Serial.println("Setting up front US sensor");
+  pinMode(ECHO, INPUT);
+  pinMode(TRIG, OUTPUT); 
+  digitalWrite(TRIG, LOW);
+
   Serial.println("Setup Complete.");
 }
 
 void loop() {
-  // drive_motor(1, FORWARD, 150);
-  // drive_motor(2, FORWARD, 150);
-  // drive_motor(3, FORWARD, 150);
-  // drive_motor(4, FORWARD, 150);
-  // delay(2000); // Run for 2 seconds
+
+  Serial.println("Setting drive motors to FORWARD");
+  for(int i = 1; i <=4; i++) {
+    drive_motor(i, FORWARD, 255);
+  }
+  delay(2000); // Run for 2 seconds
+
+  Serial.println("STOPPING drive motors");
+  for(int i = 1; i <=4; i++) {
+    drive_motor(i, RELEASE, 255);
+  }
+  delay(2000); // Run for 2 seconds
+
+  Serial.println("Setting drive motors to REVERSE");
+  for(int i = 1; i <=4; i++) {
+    drive_motor(i, REVERSE, 255);
+  }
+
+  getFrontDistance(11600);
+  delay(1000);
 
 
-  // Serial.println("Rotating front sensor 45 degrees clockwise");
-  // rotateFrontSensorMotor(steps45deg, 1);
-  // delay(1000);
-  // Serial.println("Rotatint front sensor 45 degrees anticlockwise");
-  // rotateFrontSensorMotor(steps45deg, -1);
-  // delay(1000);
+  Serial.println("Rotating front sensor 45 degrees clockwise");
+  rotateFrontSensorMotor(steps45deg, 1);
+  delay(1000);
+  Serial.println("Rotating front sensor 45 degrees anticlockwise");
+  rotateFrontSensorMotor(steps45deg, -1);
+  delay(1000);
 
 }
 
+// Functions to set drive motors to specific directions and speed
 void drive_motor(int motor_num, int command, int speed) {
   int motorA, motorB, motorPWM;
   switch (motor_num) {
@@ -142,7 +169,6 @@ void drive_motor(int motor_num, int command, int speed) {
     case RELEASE:
       shiftWrite(motorA, LOW);
       shiftWrite(motorB, LOW);
-      analogWrite(motorPWM, 0);
       break;
     case BRAKE:
       shiftWrite(motorA, HIGH);
@@ -185,4 +211,31 @@ void rotateFrontSensorMotor(int steps, int direction) {
     }
     delay(stepDelay);
   }
+}
+
+// Function to determine distance in cm from front to obstical 
+int getFrontDistance(long utimeout) { // utime out is the maximum time to wait for return in us
+  long b;
+  // if echo line is still low from last result, return 0
+  if(digitalRead(ECHO) == HIGH) {
+    return 0;
+  }
+  digitalWrite(TRIG, HIGH); // send pulse 
+  delay(1);
+  digitalWrite(TRIG, LOW);
+  long utimer = micros(); // commence timer
+  // wait for pin state to change or timeout 
+  while((digitalRead(ECHO)==LOW)&&((micros()-utimer)<1000)) {}
+  utimer=micros();
+  // wait for pin state to change
+  while((digitalRead(ECHO)==HIGH)&&((micros()-utimer)<utimeout)){}
+  b = micros() - utimer;
+  if(b== 0) {
+    b = utimeout;
+    Serial.println("Front US timeout");
+  };
+  int distance = b / 58;
+  Serial.print("Distance at front: ");
+  Serial.println(distance);
+  return distance; 
 }
